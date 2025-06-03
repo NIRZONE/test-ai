@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Coding Chatbot</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+        #chatbox { width: 90%; max-width: 600px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);}
+        #messages { height: 350px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #eee; padding: 10px; background: #fafafa; border-radius: 5px;}
+        .msg { margin: 12px 0; }
+        .user { color: #1a73e8; }
+        .bot { color: #388e3c; }
+        code, pre { background: #f4f4f4; border-radius: 5px; padding: 2px 6px; font-size: 1em;}
+        #input { width: 80%; padding: 10px; }
+        #send { padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <div id="chatbox">
+        <h2>AI Coding Chatbot</h2>
+        <div id="messages"></div>
+        <input type="text" id="input" placeholder="Ask me anything, or request code..." autocomplete="off" />
+        <button id="send">Send</button>
+    </div>
+<script>
+const apiUrl = "http://localhost:8000/chat";
+const messagesDiv = document.getElementById("messages");
+const input = document.getElementById("input");
+const send = document.getElementById("send");
+
+function addMessage(text, sender) {
+    const msg = document.createElement("div");
+    msg.className = "msg " + sender;
+    if (sender === "bot" && (text.includes("```") || text.includes("<code>"))) {
+        // Render code blocks
+        text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, function(_, lang, code) {
+            return `<pre><code>${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+        });
+    }
+    msg.innerHTML = `<span class="${sender}">${sender === "user" ? "You" : "AI"}:</span> ${text}`;
+    messagesDiv.appendChild(msg);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+send.onclick = async function() {
+    const userMsg = input.value.trim();
+    if (!userMsg) return;
+    addMessage(userMsg, "user");
+    input.value = "";
+    addMessage("Thinking...", "bot");
+    const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({message: userMsg})
+    });
+    const data = await res.json();
+    messagesDiv.removeChild(messagesDiv.lastChild); // remove "Thinking..."
+    addMessage(data.reply, "bot");
+};
+
+input.addEventListener("keydown", function(e){
+    if (e.key === "Enter") send.onclick();
+});
+</script>
+</body>
+</html>
